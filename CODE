@@ -1,0 +1,59 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.datasets import imdb
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, SimpleRNN, GRU, LSTM, Dense
+from tensorflow.keras.preprocessing import sequence
+
+max_words = 10000
+
+(x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_words)
+
+max_length = 250
+x_train = sequence.pad_sequences(x_train, maxlen=max_length)
+x_test = sequence.pad_sequences(x_test, maxlen=max_length)
+
+accuracies = []
+
+model_names = ["SimpleRNN", "GRU", "LSTM"]
+
+models = [
+    Sequential([
+        Embedding(max_words, 64, input_length=max_length),
+        SimpleRNN(64),
+        Dense(1, activation='sigmoid')
+    ]),
+    Sequential([
+        Embedding(max_words, 64, input_length=max_length),
+        GRU(64),
+        Dense(1, activation='sigmoid')
+    ]),
+    Sequential([
+        Embedding(max_words, 64, input_length=max_length),
+        LSTM(64),
+        Dense(1, activation='sigmoid')
+    ])
+]
+
+batch_size = 128
+epochs = 3
+
+histories = []
+
+for model in models:
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.2)
+    histories.append(history)
+    _, accuracy = model.evaluate(x_test, y_test, batch_size=batch_size)
+    accuracies.append(round(accuracy,1))
+
+plt.figure(figsize=(10, 6))
+for i, history in enumerate(histories):
+    plt.plot(history.history['accuracy'], label=model_names[i])
+
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.title('Comparison of Recurrent Models for Sentiment Analysis')
+plt.legend()
+plt.grid(True)
+plt.show()
